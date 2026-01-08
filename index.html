@@ -105,12 +105,15 @@
         }
         .average-label {
             position: absolute;
-            left: 5px;
-            top: -10px;
+            right: 8px;
+            left: auto;
+            top: 6px;
             font-size: 0.8rem;
             color: #cf6679;
             background: #2c2c2c;
-            padding: 0 5px;
+            padding: 0 6px;
+            z-index: 11;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -146,7 +149,64 @@
                 </div>
             </div>
 
-        </div> </div> <script>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-dark text-white p-4">
+                    <h5 class="card-title text-center">SPPU 2019 Converters</h5>
+
+                    <ul class="nav nav-tabs mt-3" id="convTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="sgpa-tab" data-bs-toggle="tab" data-bs-target="#sgpa-pane" type="button" role="tab">SGPA</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="cgpa-tab" data-bs-toggle="tab" data-bs-target="#cgpa-pane" type="button" role="tab">CGPA</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content p-3" id="convTabsContent">
+                        <div class="tab-pane fade show active" id="sgpa-pane" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">SGPA</label>
+                                    <input id="sgpa-input-live" type="number" min="0" max="10" step="0.01" class="form-control" placeholder="Enter SGPA">
+                                </div>
+                                <div class="col-md-6 align-self-end">
+                                    <p class="mb-0">Status: <span id="sgpa-status" class="fw-bold text-info">-</span></p>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <p>Percent from SGPA: <span id="sgpa-percent" class="fw-bold text-info">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="cgpa-pane" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">CGPA</label>
+                                    <input id="cgpa-input-live" type="number" min="0" max="10" step="0.01" class="form-control" placeholder="Enter CGPA">
+                                </div>
+                                <div class="col-md-6 align-self-end">
+                                    <p class="mb-0">Inferred Grade: <span id="cgpa-grade" class="fw-bold text-info">-</span></p>
+                                    <p class="mb-0">Degree Class: <span id="cgpa-class" class="fw-bold text-info">-</span></p>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <p>Percent from CGPA: <span id="cgpa-percent" class="fw-bold text-info">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="text-center mt-3 text-muted">made by nishtha</footer>
+
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const numSemesters = 8;
             const form = document.getElementById('sgpa-form');
@@ -291,6 +351,66 @@
 
             createInputs();
             updateUI(); 
+
+            const cgpaInputLive = document.getElementById('cgpa-input-live');
+            const cgpaPercentEl = document.getElementById('cgpa-percent');
+            const cgpaGradeEl = document.getElementById('cgpa-grade');
+            const cgpaClassEl = document.getElementById('cgpa-class');
+
+            const sgpaInputLive = document.getElementById('sgpa-input-live');
+            const sgpaPercentEl = document.getElementById('sgpa-percent');
+            const sgpaStatusEl = document.getElementById('sgpa-status');
+
+            function inferGradeAndClass(cgpa) {
+                if (isNaN(cgpa)) return { grade: '-', klass: '-' };
+                if (cgpa > 8.25) return { grade: 'A+', klass: 'First Class with Distinction' };
+                if (cgpa > 6.75) return { grade: 'A', klass: 'First Class' };
+                if (cgpa > 5.75) return { grade: 'B+', klass: 'Second Class' };
+                if (cgpa > 5.25) return { grade: 'B', klass: 'Second Class' };
+                if (cgpa > 4.75) return { grade: 'C', klass: 'Pass Class' };
+                return { grade: 'Fail', klass: 'Fail' };
+            }
+
+            function percentFromCgpaByGrade(cgpa, grade) {
+                if (isNaN(cgpa)) return NaN;
+                switch (grade) {
+                    case 'A+': return 12 * cgpa - 25;
+                    case 'A': return 10 * cgpa - 7.5;
+                    case 'B+': return 5 * cgpa + 26.25;
+                    case 'B': return 10 * cgpa - 2.5;
+                    case 'C': return 10 * cgpa - 2.5;
+                    case 'Fail': return 20 * cgpa - 100;
+                    default: return NaN;
+                }
+            }
+
+            function updateCgpaLive() {
+                const cgpa = parseFloat(cgpaInputLive.value);
+                const info = inferGradeAndClass(cgpa);
+                cgpaGradeEl.textContent = info.grade;
+                cgpaClassEl.textContent = info.klass;
+                const pct = percentFromCgpaByGrade(cgpa, info.grade);
+                cgpaPercentEl.textContent = isFinite(pct) ? pct.toFixed(2) + ' %' : '-';
+            }
+
+            function percentFromSgpa(sgpa) {
+                if (isNaN(sgpa)) return NaN;
+                return (sgpa * 10) - 7.5;
+            }
+
+            function updateSgpaLive() {
+                const sgpa = parseFloat(sgpaInputLive.value);
+                const pct = percentFromSgpa(sgpa);
+                sgpaPercentEl.textContent = isFinite(pct) ? pct.toFixed(2) + ' %' : '-';
+                if (isNaN(sgpa)) {
+                    sgpaStatusEl.textContent = '-';
+                } else {
+                    sgpaStatusEl.textContent = sgpa > 4.75 ? 'Pass' : 'Fail';
+                }
+            }
+
+            if (cgpaInputLive) cgpaInputLive.addEventListener('input', updateCgpaLive);
+            if (sgpaInputLive) sgpaInputLive.addEventListener('input', updateSgpaLive);
 
             window.addEventListener('resize', () => {
                 updateUI();
